@@ -2,5 +2,67 @@ import { Component } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CatalogService } from '../services/catalog.service';
 import { CatalogTitle, AccessType } from '../models';
-@Component({ selector:'ot-detail', standalone:true, imports:[RouterLink], template:`@if (title) {<section class="detail" [style.background-image]="'linear-gradient(90deg,#10151f 10%,rgba(16,21,31,.9) 38%,rgba(16,21,31,.35)),url('+title.backdrop+')'"><a routerLink="/" class="back">← Voltar para início</a><div class="detail-body"><img class="detail-poster" [src]="title.poster" [alt]="'Pôster de '+title.title"><div class="detail-copy"><span class="kicker">{{title.type}} · {{title.year}}</span><h1>{{title.title}}</h1><div class="facts"><span>{{title.duration}}</span><span>•</span><span>{{title.genres.join(' · ')}}</span></div><p class="synopsis">{{title.synopsis}}</p>@if (title.cast?.length) {<p class="cast"><b>Elenco</b> {{title.cast?.join(' · ')}}</p>}<div class="where"><div class="where-title"><div><span class="kicker">Disponibilidade</span><h2>Onde assistir</h2></div><small>Dados demonstrativos</small></div><div class="availability">@if (title.availability.length) {@for (item of title.availability; track item.service) {<div class="service"><span class="service-logo" [style.background]="item.color">{{item.service.charAt(0)}}</span><div><strong>{{item.service}}</strong><small>{{accessLabel(item.access)}}</small></div>@if(item.price){<b>{{item.price}}</b>}<span class="service-arrow">→</span></div>}} @else {<p class="not-available">Ainda não temos uma opção de streaming para este título.</p>}</div></div></div></div></section>} @else {<div class="empty"><strong>Título não encontrado.</strong><a routerLink="/">Voltar para início</a></div>}` })
-export class DetailComponent { title?:CatalogTitle; constructor(route:ActivatedRoute,catalog:CatalogService){this.title=catalog.getById(route.snapshot.paramMap.get('id')??'');} accessLabel(access:AccessType){return access==='subscription'?'Incluído na assinatura':access==='rent'?'Aluguel':'Compra';} }
+
+@Component({
+  selector: 'ot-detail',
+  standalone: true,
+  imports: [RouterLink],
+  template: `
+@if (title) {
+  <section class="detail" [style.background-image]="backdropFor(title)">
+    <a routerLink="/" class="back">← Voltar para início</a>
+    <div class="detail-body">
+      @if (!posterError) {
+        <img class="detail-poster" [src]="title.poster" [alt]="'Pôster de '+title.title" (error)="posterError=true">
+      } @else {
+        <div class="detail-poster-fallback" aria-hidden="true"><span>{{title.title.charAt(0)}}</span></div>
+      }
+      <div class="detail-copy">
+        <span class="kicker">{{title.type}} · {{title.year}}</span>
+        <h1>{{title.title}}</h1>
+        <div class="facts"><span>{{title.duration}}</span><span>•</span><span>{{title.genres.join(' · ')}}</span></div>
+        <p class="synopsis">{{title.synopsis}}</p>
+        @if (title.cast?.length) {<p class="cast"><b>Elenco</b> {{title.cast?.join(' · ')}}</p>}
+        <div class="where">
+          <div class="where-title">
+            <div><span class="kicker">Disponibilidade</span><h2>Onde assistir</h2></div>
+            <small>Dados demonstrativos</small>
+          </div>
+          <div class="availability">
+            @if (title.availability.length) {
+              @for (item of title.availability; track item.service) {
+                <div class="service">
+                  <span class="service-logo" [style.background]="item.color">{{item.service.charAt(0)}}</span>
+                  <div><strong>{{item.service}}</strong><small>{{accessLabel(item.access)}}</small></div>
+                  @if(item.price){<b>{{item.price}}</b>}
+                  <span class="service-arrow">→</span>
+                </div>
+              }
+            } @else {
+              <p class="not-available">Ainda não temos uma opção de streaming para este título.</p>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+} @else {
+  <div class="empty"><strong>Título não encontrado.</strong><a routerLink="/">Voltar para início</a></div>
+}`
+})
+export class DetailComponent {
+  title?: CatalogTitle;
+  posterError = false;
+
+  constructor(route: ActivatedRoute, catalog: CatalogService) {
+    this.title = catalog.getById(route.snapshot.paramMap.get('id') ?? '');
+  }
+
+  accessLabel(access: AccessType) {
+    return access === 'subscription' ? 'Incluído na assinatura' : access === 'rent' ? 'Aluguel' : 'Compra';
+  }
+
+  backdropFor(title: CatalogTitle) {
+    return `linear-gradient(100deg,#05060a 8%,rgba(5,6,10,.9) 38%,rgba(5,6,10,.35)),url(${title.backdrop})`;
+  }
+}
