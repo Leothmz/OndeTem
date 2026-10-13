@@ -14,7 +14,7 @@ type LoadState = 'loading' | 'ready' | 'error';
   imports: [RouterLink, SearchBoxComponent, TitleCardComponent],
   template: `
 <section class="hero">
-  <div class="hero-backdrop" [class.hero-backdrop-fade]="heroChanging" [style.background-image]="heroBackground"></div>
+  <div class="hero-backdrop" [class.hero-backdrop-fade]="heroChanging" [style.background-image]="heroBackground" (animationend)="heroChanging = false"></div>
   <div class="hero-copy">
     <div class="eyebrow"><span></span> O mapa do streaming brasileiro</div>
     <h1>O próximo filme da<br><em>sua vida</em> está aqui.</h1>
@@ -136,11 +136,8 @@ export class HomeComponent implements OnInit {
     if (this.rotationItems.length < 2) return;
     this.rotationTimer = setInterval(() => {
       this.rotationIndex = (this.rotationIndex + 1) % this.rotationItems.length;
-      this.heroChanging = false;
-      requestAnimationFrame(() => {
-        this.featured = this.rotationItems[this.rotationIndex];
-        this.heroChanging = true;
-      });
+      this.featured = this.rotationItems[this.rotationIndex];
+      this.heroChanging = true;
     }, 7000);
   }
 

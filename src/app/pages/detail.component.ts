@@ -38,7 +38,7 @@ type LoadState = 'loading' | 'ready' | 'not-found' | 'error';
           </div>
           <div class="availability">
             @if (title.availability.length) {
-              @for (item of title.availability; track item.service) {
+              @for (item of title.availability; track item.access + ':' + item.service) {
                 <div class="service">
                   <span class="service-logo" [style.background]="item.color">{{item.service.charAt(0)}}</span>
                   <div><strong>{{item.service}}</strong><small>{{accessLabel(item.access)}}</small></div>

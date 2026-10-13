@@ -41,6 +41,19 @@ describe('DetailComponent', () => {
     expect(text()).toContain('Incluído na assinatura');
   });
 
+  it('renders rent and buy from the same store as separate entries', () => {
+    const consoleError = spyOn(console, 'error');
+    getById.and.returnValue(of(catalogTitle({ availabilityStatus: 'tmdb', availability: [
+      { service: 'Apple TV', access: 'rent', color: '#222' },
+      { service: 'Apple TV', access: 'buy', color: '#222' }
+    ] })));
+    fixture.detectChanges();
+    const labels = Array.from(fixture.nativeElement.querySelectorAll('.service small') as NodeListOf<HTMLElement>).map(el => el.textContent);
+    expect(labels.length).toBe(2);
+    expect(new Set(labels).size).toBe(2);
+    expect(consoleError).not.toHaveBeenCalled();
+  });
+
   it('shows not-found and error states', () => {
     getById.and.returnValue(of(null));
     fixture.detectChanges();

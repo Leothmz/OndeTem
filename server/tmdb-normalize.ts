@@ -58,12 +58,19 @@ const PROVIDER_COLORS: Record<string, string> = {
 
 function providerColor(name: string): string { return PROVIDER_COLORS[name] ?? '#334155'; }
 
+const SUBSCRIPTION_BRANDS: [RegExp, string][] = [
+  [/^netflix\b/, 'Netflix'],
+  [/\bhbo max\b|^max\b/, 'HBO Max'],
+  [/\bprime video\b/, 'Prime Video'],
+  [/^paramount\s*(\+|plus\b)/, 'Paramount Plus'],
+  [/^disney\s*(\+|plus\b)/, 'Disney Plus']
+];
+
 function displayProviderName(name: string, access: string): string {
   if (access !== 'subscription') return name;
   const folded = name.toLocaleLowerCase('pt-BR');
-  if (folded.startsWith('netflix')) return 'Netflix';
-  if (folded.includes('hbo max') || folded.startsWith('max')) return 'HBO Max';
-  if (folded.startsWith('prime video')) return 'Prime Video';
+  const brand = SUBSCRIPTION_BRANDS.find(([pattern]) => pattern.test(folded));
+  if (brand) return brand[1];
   return name
     .replace(/\s+(amazon channel|with ads|com anúncios|com publicidade)$/i, '')
     .trim();
