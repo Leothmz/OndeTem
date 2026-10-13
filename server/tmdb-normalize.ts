@@ -1,8 +1,7 @@
-import type { CatalogTitle, TitleType } from '../shared/catalog-contract';
+import type { Availability, CatalogTitle, TitleType } from '../shared/catalog-contract';
 
 // Normalização pura de respostas TMDB (API v3) para o contrato `CatalogTitle`.
-// Disponibilidade de streaming NÃO vem do TMDB aqui: fica vazia com status `unavailable`
-// até um provedor dedicado ser integrado.
+// A disponibilidade vem do endpoint Watch Providers do TMDB e é específica por região.
 
 export type TmdbMediaType = 'movie' | 'tv';
 
@@ -29,6 +28,10 @@ export interface TmdbTitle {
   credits?: { cast?: { name: string; order?: number }[] };
 }
 
+export interface TmdbWatchProvider { provider_id: number; provider_name: string; logo_path?: string | null; display_priority?: number; }
+export interface TmdbWatchRegion { flatrate?: TmdbWatchProvider[]; rent?: TmdbWatchProvider[]; buy?: TmdbWatchProvider[]; }
+export interface TmdbWatchProviders { results?: Record<string, TmdbWatchRegion>; }
+
 export interface TmdbPage<T = TmdbTitle> { page?: number; results?: T[]; total_results?: number; }
 
 // Nomes em pt-BR dos gêneros TMDB (estáveis; evitam uma chamada extra a /genre/*/list).
@@ -46,6 +49,44 @@ export const TMDB_GENRES: Record<TmdbMediaType, Record<number, string>> = {
 };
 
 const CAST_LIMIT = 5;
+
+const PROVIDER_COLORS: Record<string, string> = {
+  Max: '#1683ff', 'HBO Max': '#1683ff', Netflix: '#e50914', 'Prime Video': '#16a9e8',
+  'Disney Plus': '#173b9c', 'Disney+': '#173b9c', 'Apple TV': '#222', 'Paramount Plus': '#0064ff',
+  Globoplay: '#f26b38', 'Claro video': '#e31b23', MUBI: '#111'
+};
+
+function providerColor(name: string): string { return PROVIDER_COLORS[name] ?? '#334155'; }
+
+function displayProviderName(name: string, access: string): string {
+  if (access !== 'subscription') return name;
+  const folded = name.toLocaleLowerCase('pt-BR');
+  if (folded.startsWith('netflix')) return 'Netflix';
+  if (folded.includes('hbo max') || folded.startsWith('max')) return 'HBO Max';
+  if (folded.startsWith('prime video')) return 'Prime Video';
+  return name
+    .replace(/\s+(amazon channel|with ads|com anúncios|com publicidade)$/i, '')
+    .trim();
+}
+
+export function normalizeAvailability(watch: TmdbWatchProviders | undefined, region: string): Availability[] {
+  const localized = watch?.results?.[region];
+  if (!localized) return [];
+  const result: Availability[] = [];
+  const seen = new Set<string>();
+  for (const [access, providers] of [
+    ['subscription', localized.flatrate], ['rent', localized.rent], ['buy', localized.buy]
+  ] as const) {
+    for (const provider of providers ?? []) {
+      const service = displayProviderName(provider.provider_name, access);
+      const key = `${access}:${service.toLocaleLowerCase('pt-BR')}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push({ service, access, color: providerColor(service) });
+    }
+  }
+  return result;
+}
 
 export function toCatalogId(mediaType: TmdbMediaType, tmdbId: number): string {
   return `${mediaType}-${tmdbId}`;
@@ -97,7 +138,7 @@ export function mediaTypeOf(raw: TmdbTitle, fallback?: TmdbMediaType): TmdbMedia
 }
 
 /** Normaliza um item TMDB (lista ou detalhes). Retorna `null` para pessoas, ids inválidos ou itens sem nome. */
-export function normalizeTmdbTitle(raw: TmdbTitle, fallbackType?: TmdbMediaType): CatalogTitle | null {
+export function normalizeTmdbTitle(raw: TmdbTitle, fallbackType?: TmdbMediaType, watch?: TmdbWatchProviders, region = 'BR'): CatalogTitle | null {
   const mediaType = mediaTypeOf(raw, fallbackType);
   if (!mediaType || !Number.isInteger(raw.id) || raw.id <= 0) return null;
   const isMovie = mediaType === 'movie';
@@ -109,6 +150,7 @@ export function normalizeTmdbTitle(raw: TmdbTitle, fallbackType?: TmdbMediaType)
     .slice(0, CAST_LIMIT)
     .map(member => member.name)
     .filter(Boolean);
+  const availability = normalizeAvailability(watch, region);
   const normalized: CatalogTitle = {
     id: toCatalogId(mediaType, raw.id),
     title,
@@ -119,8 +161,8 @@ export function normalizeTmdbTitle(raw: TmdbTitle, fallbackType?: TmdbMediaType)
     synopsis: raw.overview?.trim() ?? '',
     poster: imageUrl(raw.poster_path, 'w500'),
     backdrop: imageUrl(raw.backdrop_path, 'w1280'),
-    availability: [],
-    availabilityStatus: 'unavailable'
+    availability,
+    availabilityStatus: availability.length ? 'tmdb' : 'unavailable'
   };
   if (cast.length) normalized.cast = cast;
   return normalized;

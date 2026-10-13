@@ -13,7 +13,8 @@ type LoadState = 'loading' | 'ready' | 'error';
   standalone: true,
   imports: [RouterLink, SearchBoxComponent, TitleCardComponent],
   template: `
-<section class="hero" [style.background-image]="heroBackground">
+<section class="hero">
+  <div class="hero-backdrop" [class.hero-backdrop-fade]="heroChanging" [style.background-image]="heroBackground"></div>
   <div class="hero-copy">
     <div class="eyebrow"><span></span> O mapa do streaming brasileiro</div>
     <h1>O próximo filme da<br><em>sua vida</em> está aqui.</h1>
@@ -97,6 +98,10 @@ export class HomeComponent implements OnInit {
   featured: CatalogTitle | null = null;
   trending: CatalogTitle[] = [];
   coming: CatalogTitle[] = [];
+  heroChanging = false;
+  private rotationItems: CatalogTitle[] = [];
+  private rotationIndex = 0;
+  private rotationTimer?: ReturnType<typeof setInterval>;
   genres = [
     { name: 'Ficção científica', image: 'https://images.unsplash.com/photo-1446776877081-d282a0f896e2?w=800' },
     { name: 'Drama', image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800' },
@@ -105,20 +110,43 @@ export class HomeComponent implements OnInit {
   ];
 
   ngOnInit() {
+    this.destroyRef.onDestroy(() => this.stopRotation());
     this.load();
   }
 
   load() {
+    this.stopRotation();
     this.state = 'loading';
     this.catalog.home().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: home => {
-        this.featured = home.featured;
         this.trending = home.trending;
+        this.rotationItems = [...home.trending];
+        const initialIndex = this.rotationItems.findIndex(item => item.id === home.featured?.id);
+        this.rotationIndex = initialIndex >= 0 ? initialIndex : 0;
+        this.featured = this.rotationItems[this.rotationIndex] ?? home.featured;
         this.coming = home.comingSoon;
         this.state = 'ready';
+        this.startRotation();
       },
       error: () => { this.state = 'error'; }
     });
+  }
+
+  private startRotation() {
+    if (this.rotationItems.length < 2) return;
+    this.rotationTimer = setInterval(() => {
+      this.rotationIndex = (this.rotationIndex + 1) % this.rotationItems.length;
+      this.heroChanging = false;
+      requestAnimationFrame(() => {
+        this.featured = this.rotationItems[this.rotationIndex];
+        this.heroChanging = true;
+      });
+    }, 7000);
+  }
+
+  private stopRotation() {
+    if (this.rotationTimer) clearInterval(this.rotationTimer);
+    this.rotationTimer = undefined;
   }
 
   get heroBackground() {

@@ -83,11 +83,14 @@ describe('TmdbCatalogProvider', () => {
     const calls: FakeCall[] = [];
     const provider = new TmdbCatalogProvider({ ...base, apiKey: 'k', fetch: fakeFetch({
       '/tv/1396': { id: 1396, name: 'Breaking Bad', number_of_seasons: 5, credits: { cast: [{ name: 'Bryan Cranston', order: 0 }] } }
+      ,'/tv/1396/watch/providers': { results: { BR: { flatrate: [{ provider_id: 8, provider_name: 'Netflix' }] } } }
     }, calls) });
     const title = await provider.title('tv-1396');
     assert.equal(title?.title, 'Breaking Bad');
     assert.equal(title?.duration, '5 temporadas');
     assert.deepEqual(title?.cast, ['Bryan Cranston']);
+    assert.deepEqual(title?.availability.map(item => [item.service, item.access]), [['Netflix', 'subscription']]);
+    assert.equal(title?.availabilityStatus, 'tmdb');
     assert.equal(calls[0].url.searchParams.get('append_to_response'), 'credits');
     assert.equal(await provider.title('movie-404'), null);
     assert.equal(await provider.title('duna-parte-dois'), null);

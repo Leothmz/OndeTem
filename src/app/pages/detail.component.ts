@@ -34,7 +34,7 @@ type LoadState = 'loading' | 'ready' | 'not-found' | 'error';
         <div class="where">
           <div class="where-title">
             <div><span class="kicker">Disponibilidade</span><h2>Onde assistir</h2></div>
-            <small>{{title.availabilityStatus === 'demo' ? 'Dados demonstrativos' : 'Em breve'}}</small>
+            <small>{{title.availabilityStatus === 'demo' ? 'Dados demonstrativos' : title.availabilityStatus === 'tmdb' ? 'Dados do TMDB' : 'Em breve'}}</small>
           </div>
           <div class="availability">
             @if (title.availability.length) {

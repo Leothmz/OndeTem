@@ -70,7 +70,7 @@ Erros seguem `{ error: { code, message } }` com `bad_request` (400), `not_found`
 
 **Normalização TMDB → `CatalogTitle`.** Usamos `/search/multi` (pessoas são descartadas), `/trending/all/week` (destaque e "Em alta"), `/movie/upcoming` filtrado para datas futuras ("Em breve") e `/{movie|tv}/{id}?append_to_response=credits` (detalhes e elenco). Buscas que são exatamente o nome de um gênero (os chips da home, como "Animação") viram `/discover/movie` e `/discover/tv`. Gêneros saem em pt-BR. Duração vira `2h 46min` para filmes e `N temporadas` para séries. `year` é `null` e `poster`/`backdrop` ficam vazios quando o TMDB não informa, e o frontend mostra fallbacks.
 
-**Disponibilidade de streaming.** O TMDB não é usado como fonte de "onde assistir". Títulos TMDB vêm com `availability: []` e `availabilityStatus: 'unavailable'`, e a UI diz que ainda não há essa informação. Só o catálogo demo tem disponibilidade, marcada como `availabilityStatus: 'demo'` e exibida como "Dados demonstrativos". Dados reais exigem um provedor dedicado, que ainda não foi integrado.
+**Disponibilidade de streaming.** O detalhe consulta `/{movie|tv}/{id}/watch/providers` do TMDB para a região de `TMDB_REGION`. Assinatura, aluguel e compra são normalizados em `availability`; quando existem provedores, `availabilityStatus` é `tmdb` e a UI exibe "Dados do TMDB". A lista pode estar vazia quando o TMDB não tem dados para a região. O catálogo demo continua marcado como `demo`.
 
 **Cache.** Respostas do TMDB (home, buscas, detalhes) ficam em cache em memória por `CATALOG_CACHE_TTL_SECONDS`. Requisições simultâneas da mesma chave são deduplicadas. Se a atualização falhar e houver uma cópia expirada, ela é servida e a falha vai para o log.
 
@@ -99,7 +99,7 @@ O frontend trata carregamento (skeletons), vazio e erro com "Tentar novamente" n
 - Os termos exigem atribuição. Quando a resposta vem do TMDB, o rodapé mostra: "Este produto usa a API do TMDB, mas não é endossado nem certificado pelo TMDB", com link para themoviedb.org. Antes de publicar em produção, adicione também o logo oficial do TMDB seguindo as [diretrizes de marca](https://www.themoviedb.org/about/logos-attribution), menos destacado que a marca do Onde Tem?.
 - A chave gratuita é para uso não comercial. Uso comercial exige licença com o TMDB.
 - Imagens são servidas por `image.tmdb.org` (`w500` para pôsteres, `w1280` para fundos). Não as copie para o repositório.
-- Os dados do TMDB não incluem disponibilidade de streaming adequada para o Onde Tem?, como explicado acima.
+- A disponibilidade vem do endpoint Watch Providers do TMDB e pode variar por região e data; ela não inclui preços nem links diretos.
 
 ## Produção
 
