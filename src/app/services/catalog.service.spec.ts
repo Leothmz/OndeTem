@@ -1,0 +1,3 @@
+import { TestBed } from '@angular/core/testing';
+import { CatalogService } from './catalog.service';
+describe('CatalogService', () => { let service: CatalogService; beforeEach(() => { TestBed.configureTestingModule({}); service=TestBed.inject(CatalogService); }); it('finds titles by title and genre case-insensitively', () => { expect(service.search('DUNA')[0].id).toBe('duna-parte-dois'); expect(service.search('animação')[0].id).toBe('flow'); }); it('exposes availability with access mode', () => { const item=service.getById('duna-parte-dois'); expect(item?.availability.some(option=>option.access==='subscription')).toBeTrue(); expect(item?.availability.some(option=>option.access==='rent')).toBeTrue(); }); });
