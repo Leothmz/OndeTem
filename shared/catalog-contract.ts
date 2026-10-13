@@ -10,7 +10,8 @@ export type CatalogSource = 'tmdb' | 'demo';
 /**
  * `demo`: disponibilidade editorial de demonstração (catálogo local).
  * `tmdb`: disponibilidade informada pelo endpoint Watch Providers do TMDB.
- * `unavailable`: o TMDB não retornou provedores para a região consultada.
+ * `unavailable`: sem provedores conhecidos (região sem dados, falha na consulta ou títulos de listas/buscas,
+ *   que não consultam Watch Providers); `availability` vem vazio.
  */
 export type AvailabilityStatus = 'demo' | 'tmdb' | 'unavailable';
 

@@ -4,7 +4,7 @@ Buscador brasileiro de filmes e séries que responde: **onde assistir?**
 
 O projeto tem duas partes:
 
-- **Frontend** Angular standalone (`src/`): home com destaque e trilhos, busca por título/gênero, página de detalhes.
+- **Frontend** Angular standalone (`src/`): home com destaque que alterna entre os títulos em alta (transição fade) e trilhos, busca por título/gênero, página de detalhes.
 - **API de catálogo** Node + TypeScript sem dependências de runtime (`server/`): normaliza dados do [TMDB](https://www.themoviedb.org/) para o contrato do frontend e usa um catálogo local de demonstração como fallback.
 
 O contrato compartilhado está em [`shared/catalog-contract.ts`](shared/catalog-contract.ts) (`src/app/models.ts` só reexporta).
@@ -44,7 +44,7 @@ A API lê o ambiente do processo e, se existir, um `.env` na raiz (Node 20.12+).
 | `TMDB_API_KEY` | vazio | Chave v3 do TMDB. Sem ela, a API usa o catálogo demo. |
 | `TMDB_READ_ACCESS_TOKEN` | vazio | Alternativa: token de leitura v4 (enviado como Bearer). Tem precedência sobre a chave v3. |
 | `TMDB_LANGUAGE` | `pt-BR` | Idioma de títulos e sinopses |
-| `TMDB_REGION` | `BR` | Região dos lançamentos ("Em breve") |
+| `TMDB_REGION` | `BR` | Região dos lançamentos ("Em breve") e dos provedores de streaming |
 | `TMDB_TIMEOUT_MS` | `5000` | Timeout por requisição ao TMDB |
 | `TMDB_API_BASE_URL` | `https://api.themoviedb.org/3` | Base alternativa (proxy, mock local) |
 | `CATALOG_CACHE_TTL_SECONDS` | `600` | Cache em memória das respostas TMDB (`0` desativa) |
@@ -70,7 +70,7 @@ Erros seguem `{ error: { code, message } }` com `bad_request` (400), `not_found`
 
 **Normalização TMDB → `CatalogTitle`.** Usamos `/search/multi` (pessoas são descartadas), `/trending/all/week` (destaque e "Em alta"), `/movie/upcoming` filtrado para datas futuras ("Em breve") e `/{movie|tv}/{id}?append_to_response=credits` (detalhes e elenco). Buscas que são exatamente o nome de um gênero (os chips da home, como "Animação") viram `/discover/movie` e `/discover/tv`. Gêneros saem em pt-BR. Duração vira `2h 46min` para filmes e `N temporadas` para séries. `year` é `null` e `poster`/`backdrop` ficam vazios quando o TMDB não informa, e o frontend mostra fallbacks.
 
-**Disponibilidade de streaming.** O detalhe consulta `/{movie|tv}/{id}/watch/providers` do TMDB para a região de `TMDB_REGION`. Assinatura, aluguel e compra são normalizados em `availability`; quando existem provedores, `availabilityStatus` é `tmdb` e a UI exibe "Dados do TMDB". A lista pode estar vazia quando o TMDB não tem dados para a região. O catálogo demo continua marcado como `demo`.
+**Disponibilidade de streaming.** O detalhe consulta `/{movie|tv}/{id}/watch/providers` do TMDB para a região de `TMDB_REGION`. Assinatura, aluguel e compra são normalizados em `availability` como entradas distintas; variantes de plano do mesmo serviço por assinatura (com anúncios, Amazon Channel etc.) são agrupadas em uma só. Quando existem provedores, `availabilityStatus` é `tmdb` e a UI exibe "Dados do TMDB". Sem provedores para a região, em listas e buscas (que não consultam o endpoint) ou se a consulta falhar, `availability` fica vazio com status `unavailable`. O catálogo demo continua marcado como `demo`.
 
 **Cache.** Respostas do TMDB (home, buscas, detalhes) ficam em cache em memória por `CATALOG_CACHE_TTL_SECONDS`. Requisições simultâneas da mesma chave são deduplicadas. Se a atualização falhar e houver uma cópia expirada, ela é servida e a falha vai para o log.
 
