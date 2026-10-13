@@ -2,7 +2,7 @@ import type { CatalogTitle } from '../shared/catalog-contract';
 import type { CatalogProvider, HomeCatalog } from './catalog-provider';
 import { foldText } from './demo-catalog';
 import {
-  TMDB_GENRES, TmdbMediaType, TmdbPage, TmdbTitle,
+  TMDB_GENRES, TmdbMediaType, TmdbPage, TmdbTitle, TmdbWatchProviders,
   normalizeTmdbList, normalizeTmdbTitle, parseCatalogId
 } from './tmdb-normalize';
 
@@ -105,8 +105,12 @@ export class TmdbCatalogProvider implements CatalogProvider {
     const parsed = parseCatalogId(id);
     if (!parsed) return null;
     try {
-      const raw = await this.get<TmdbTitle>(`/${parsed.mediaType}/${parsed.tmdbId}`, { append_to_response: 'credits' });
-      return normalizeTmdbTitle(raw, parsed.mediaType);
+      const [raw, watch] = await Promise.all([
+        this.get<TmdbTitle>(`/${parsed.mediaType}/${parsed.tmdbId}`, { append_to_response: 'credits' }),
+        // Uma falha neste endpoint não deve esconder o título; apenas deixa a disponibilidade desconhecida.
+        this.get<TmdbWatchProviders>(`/${parsed.mediaType}/${parsed.tmdbId}/watch/providers`).catch(() => undefined)
+      ]);
+      return normalizeTmdbTitle(raw, parsed.mediaType, watch, this.options.region);
     } catch (error) {
       if (error instanceof TmdbError && error.status === 404) return null;
       throw error;

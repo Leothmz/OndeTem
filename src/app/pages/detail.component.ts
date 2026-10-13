@@ -34,11 +34,11 @@ type LoadState = 'loading' | 'ready' | 'not-found' | 'error';
         <div class="where">
           <div class="where-title">
             <div><span class="kicker">Disponibilidade</span><h2>Onde assistir</h2></div>
-            <small>{{title.availabilityStatus === 'demo' ? 'Dados demonstrativos' : 'Em breve'}}</small>
+            <small>{{title.availabilityStatus === 'demo' ? 'Dados demonstrativos' : title.availabilityStatus === 'tmdb' ? 'Dados do TMDB' : 'Em breve'}}</small>
           </div>
           <div class="availability">
             @if (title.availability.length) {
-              @for (item of title.availability; track item.service) {
+              @for (item of title.availability; track item.access + ':' + item.service) {
                 <div class="service">
                   <span class="service-logo" [style.background]="item.color">{{item.service.charAt(0)}}</span>
                   <div><strong>{{item.service}}</strong><small>{{accessLabel(item.access)}}</small></div>

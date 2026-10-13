@@ -5,7 +5,7 @@ This file is the project's committed base for project-intrinsic agent knowledge:
 - Layout: Angular frontend in `src/`, Node/TS catalog API in `server/`, shared types in `shared/catalog-contract.ts` (the frontend↔API contract; `src/app/models.ts` only re-exports it). README covers commands, env vars, API routes and fallback rules.
 - `npm start` runs API + `ng serve` together (`scripts/dev.mjs`); `/api` reaches the API through `proxy.conf.js`. `ng serve` alone shows error states, not data.
 - `npm test` = `test:api` (tsc → `node --test` via `scripts/test-api.mjs`) + `test:web` (Karma `ChromeHeadlessCI`, no sandbox). In containers set `CHROME_BIN` (e.g. the Playwright Chromium under `~/.cache/ms-playwright`).
-- TMDB credentials live only in the API env (`TMDB_API_KEY` / `TMDB_READ_ACCESS_TOKEN`); never add them to Angular code. Without them the API serves the demo catalog. TMDB titles must keep `availabilityStatus: 'unavailable'`: do not invent streaming availability.
+- TMDB credentials live only in the API env (`TMDB_API_KEY` / `TMDB_READ_ACCESS_TOKEN`); never add them to Angular code. Without them the API serves the demo catalog. TMDB title availability comes only from the regional Watch Providers endpoint; do not invent providers or prices.
 
 ## Maintaining this file
 

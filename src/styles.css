@@ -62,7 +62,9 @@ a:focus:not(:focus-visible),button:focus:not(:focus-visible){outline:none}
 
 main{position:relative;z-index:2}
 
-.hero{min-height:88vh;background-size:cover;background-position:center;position:relative;color:#fff;padding:120px 8vw 70px;display:flex;overflow:hidden}
+.hero{min-height:88vh;background:#05060a;position:relative;color:#fff;padding:120px 8vw 70px;display:flex;overflow:hidden}
+.hero-backdrop{position:absolute;inset:0;background-size:cover;background-position:center;z-index:0}
+.hero-backdrop-fade{animation:heroFade 2.2s ease-in-out both}
 .hero::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 60%,var(--base) 100%);pointer-events:none}
 .hero-copy{max-width:680px;position:relative;z-index:2;animation:riseIn .7s var(--ease) both}
 .eyebrow,.kicker{font-family:var(--mono);text-transform:uppercase;font-size:10px;letter-spacing:2px;color:var(--gold)}
@@ -174,6 +176,7 @@ footer .attribution a:hover{color:var(--ink)}
 .detail-skeleton .line.title{height:64px;max-width:440px}
 @keyframes shimmer{to{background-position:-200% 0}}
 @keyframes riseIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes heroFade{from{opacity:.3;transform:scale(1.015)}to{opacity:1;transform:scale(1)}}
 
 .detail{min-height:calc(100vh - 76px);background-size:cover;background-position:center;position:relative;color:#fff;padding:54px 8vw 90px;z-index:2}
 .detail::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 65%,var(--base) 100%);pointer-events:none}
@@ -210,7 +213,7 @@ footer .attribution a:hover{color:var(--ink)}
   .site-header{height:64px;padding:0 5vw;gap:24px}
   .site-header nav{display:none}
   .header-search span{display:none}
-  .hero{min-height:86vh;padding:84px 7vw 44px;background-position:65%}
+  .hero{min-height:86vh;padding:84px 7vw 44px}
   .hero h1{font-size:46px}
   .hero-note{right:7vw;bottom:36px}
   .content,.search-page{padding:58px 6vw}

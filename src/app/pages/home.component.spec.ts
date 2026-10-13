@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, discardPeriodicTasks, fakeAsync, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { HomeComponent } from './home.component';
@@ -28,8 +28,28 @@ describe('HomeComponent', () => {
     expect(text()).toContain('Ruptura');
     expect(text()).toContain('Em breve no cinema');
     expect(fixture.nativeElement.querySelectorAll('ot-title-card').length).toBe(3);
-    expect(fixture.nativeElement.querySelector('.hero').style.backgroundImage).toContain('w1280/b.jpg');
+    expect(fixture.nativeElement.querySelector('.hero-backdrop').style.backgroundImage).toContain('w1280/b.jpg');
   });
+
+  it('rotates the featured title and restarts the fade on every change', fakeAsync(() => {
+    const first = catalogTitle({ id: 'movie-1', title: 'Primeiro' });
+    const second = catalogTitle({ id: 'movie-2', title: 'Segundo' });
+    home.and.returnValue(of({ featured: first, trending: [first, second], comingSoon: [] }));
+    fixture.detectChanges();
+    const backdrop = () => fixture.nativeElement.querySelector('.hero-backdrop') as HTMLElement;
+    const note = () => (fixture.nativeElement.querySelector('.hero-note strong') as HTMLElement).textContent;
+    expect(note()).toBe('Primeiro');
+    for (const expected of ['Segundo', 'Primeiro', 'Segundo']) {
+      tick(7000);
+      fixture.detectChanges();
+      expect(note()).toBe(expected);
+      expect(backdrop().classList).toContain('hero-backdrop-fade');
+      backdrop().dispatchEvent(new Event('animationend'));
+      fixture.detectChanges();
+      expect(backdrop().classList).not.toContain('hero-backdrop-fade');
+    }
+    discardPeriodicTasks();
+  }));
 
   it('shows a retryable error state and keeps search and genres usable', () => {
     home.and.returnValue(throwError(() => new Error('down')));

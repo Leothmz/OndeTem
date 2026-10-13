@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
-  formatRuntime, formatTvLength, imageUrl, normalizeTmdbList, normalizeTmdbTitle, parseCatalogId, yearFrom
+  formatRuntime, formatTvLength, imageUrl, normalizeAvailability, normalizeTmdbList, normalizeTmdbTitle, parseCatalogId, yearFrom
 } from './tmdb-normalize';
 
 describe('TMDB normalization', () => {
@@ -78,5 +78,39 @@ describe('TMDB normalization', () => {
     assert.equal(parseCatalogId('duna-parte-dois'), null);
     assert.equal(parseCatalogId('movie-0'), null);
     assert.equal(parseCatalogId('person-12'), null);
+  });
+
+  describe('normalizeAvailability', () => {
+    const provider = (provider_name: string, provider_id = 1) => ({ provider_id, provider_name });
+
+    it('merges plan variants of the same subscription service into one entry', () => {
+      const availability = normalizeAvailability({ results: { BR: { flatrate: [
+        provider('Netflix'), provider('Netflix Standard with Ads'),
+        provider('HBO Max'), provider('Max'), provider('HBO Max Amazon Channel'),
+        provider('Amazon Prime Video'), provider('Amazon Prime Video with Ads'),
+        provider('Paramount Plus'), provider('Paramount+ Amazon Channel'),
+        provider('Globoplay')
+      ] } } }, 'BR');
+      assert.deepEqual(availability.map(item => item.service), ['Netflix', 'HBO Max', 'Prime Video', 'Paramount Plus', 'Globoplay']);
+      assert.ok(availability.every(item => item.access === 'subscription'));
+      assert.equal(availability.find(item => item.service === 'Prime Video')?.color, '#16a9e8');
+    });
+
+    it('keeps rent and buy from the same store as distinct entries', () => {
+      const availability = normalizeAvailability({ results: { BR: {
+        rent: [provider('Apple TV'), provider('Google Play Movies')],
+        buy: [provider('Apple TV'), provider('Google Play Movies')]
+      } } }, 'BR');
+      assert.deepEqual(availability.map(item => `${item.access}:${item.service}`), [
+        'rent:Apple TV', 'rent:Google Play Movies', 'buy:Apple TV', 'buy:Google Play Movies'
+      ]);
+      assert.ok(availability.every(item => item.price === undefined));
+    });
+
+    it('returns no availability for a region TMDB does not list', () => {
+      const watch = { results: { US: { flatrate: [provider('Netflix')] } } };
+      assert.deepEqual(normalizeAvailability(watch, 'BR'), []);
+      assert.deepEqual(normalizeAvailability(undefined, 'BR'), []);
+    });
   });
 });
