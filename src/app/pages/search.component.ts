@@ -1,5 +1,7 @@
-import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { CatalogService } from '../services/catalog.service';
 import { CatalogTitle } from '../models';
 import { SearchBoxComponent } from '../components/search-box.component';
@@ -8,7 +10,7 @@ import { TitleCardComponent } from '../components/title-card.component';
 @Component({
   selector: 'ot-search-page',
   standalone: true,
-  imports: [SearchBoxComponent, TitleCardComponent],
+  imports: [RouterLink, SearchBoxComponent, TitleCardComponent],
   template: `
 <section class="search-page">
   <div class="search-intro">
@@ -20,6 +22,12 @@ import { TitleCardComponent } from '../components/title-card.component';
     <div class="loading" role="status">
       <span></span><span></span><span></span><span></span><span></span>
       <p>Consultando o catálogo...</p>
+    </div>
+  } @else if (error) {
+    <div class="empty" role="alert">
+      <strong>Não foi possível consultar o catálogo.</strong>
+      <p>Algo deu errado do nosso lado. Tente novamente em instantes.</p>
+      <button type="button" class="retry" (click)="load()">Tentar novamente</button>
     </div>
   } @else if (query && results.length) {
     <div class="results-header">
@@ -33,7 +41,7 @@ import { TitleCardComponent } from '../components/title-card.component';
     <div class="empty">
       <strong>Não encontramos esse título.</strong>
       <p>Tente buscar por outro nome ou gênero. O catálogo está sempre crescendo.</p>
-      <a href="/buscar">Limpar busca →</a>
+      <a routerLink="/buscar">Limpar busca →</a>
     </div>
   } @else {
     <div class="empty welcome">
@@ -44,21 +52,37 @@ import { TitleCardComponent } from '../components/title-card.component';
 </section>`
 })
 export class SearchComponent implements OnInit {
+  private readonly route = inject(ActivatedRoute);
+  private readonly catalog = inject(CatalogService);
+  private readonly destroyRef = inject(DestroyRef);
+  private request?: Subscription;
+
   query = '';
   results: CatalogTitle[] = [];
   loading = false;
-
-  constructor(private route: ActivatedRoute, private catalog: CatalogService) {}
+  error = false;
 
   ngOnInit() {
-    this.route.queryParams.subscribe(params => {
-      this.query = params['q'] ?? '';
-      if (this.query) {
-        this.loading = true;
-        setTimeout(() => { this.results = this.catalog.search(this.query); this.loading = false; }, 280);
-      } else {
-        this.results = [];
-      }
+    this.destroyRef.onDestroy(() => this.request?.unsubscribe());
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
+      this.query = (params.get('q') ?? '').trim();
+      this.load();
+    });
+  }
+
+  /** Busca a query atual; uma nova busca cancela a anterior para nunca exibir resultados fora de ordem. */
+  load() {
+    this.request?.unsubscribe();
+    this.results = [];
+    this.error = false;
+    if (!this.query) {
+      this.loading = false;
+      return;
+    }
+    this.loading = true;
+    this.request = this.catalog.search(this.query).subscribe({
+      next: results => { this.results = results; this.loading = false; },
+      error: () => { this.error = true; this.loading = false; }
     });
   }
 }

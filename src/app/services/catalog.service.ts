@@ -1,23 +1,44 @@
-import { Injectable } from '@angular/core';
-import { CatalogTitle } from '../models';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Injectable, InjectionToken, inject, signal } from '@angular/core';
+import { Observable, catchError, map, of, tap, throwError } from 'rxjs';
+import { CatalogSource, CatalogTitle, HomeCatalogResponse, SearchResponse, TitleResponse } from '../models';
 
-// Adapter local temporário: substitua a implementação por HttpClient quando a API estiver disponível.
-// Os dados abaixo são demonstração editorial, não disponibilidade de produção.
+/** Base da API de catálogo. Em desenvolvimento o `ng serve` faz proxy de `/api` para o servidor Node (`server/`). */
+export const CATALOG_API_URL = new InjectionToken<string>('CATALOG_API_URL', { providedIn: 'root', factory: () => '/api' });
+
+export type HomeCatalog = Omit<HomeCatalogResponse, 'source'>;
+
+// Cliente HTTP da API de catálogo. Credenciais e o fallback demo ficam no servidor; aqui só há chamadas relativas.
 @Injectable({ providedIn: 'root' })
 export class CatalogService {
-  private readonly catalog: CatalogTitle[] = [
-    { id: 'duna-parte-dois', title: 'Duna: Parte Dois', type: 'Filme', year: 2024, duration: '2h 46min', genres: ['Ficção científica', 'Aventura'], synopsis: 'Paul Atreides se une a Chani e aos Fremen em uma jornada de vingança e destino no deserto de Arrakis.', poster: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&q=85', backdrop: 'https://images.unsplash.com/photo-1500534623283-312aade485b7?w=1800&q=85', cast: ['Timothée Chalamet', 'Zendaya', 'Rebecca Ferguson'], availability: [{service:'Max',access:'subscription',color:'#1683ff'},{service:'Apple TV',access:'rent',price:'R$ 14,90',color:'#222'}], featured: true, trending: true },
-    { id: 'a-substancia', title: 'A Substância', type: 'Filme', year: 2024, duration: '2h 21min', genres: ['Terror', 'Drama'], synopsis: 'Uma celebridade em declínio descobre uma fórmula que cria uma versão mais jovem e perfeita de si mesma.', poster: 'https://images.unsplash.com/photo-1509347528160-9a9e33742cdb?w=600&q=85', backdrop: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1800&q=85', cast: ['Demi Moore', 'Margaret Qualley'], availability: [{service:'Prime Video',access:'rent',price:'R$ 19,90',color:'#16a9e8'},{service:'Apple TV',access:'buy',price:'R$ 49,90',color:'#222'}], trending: true },
-    { id: 'bebete-renas', title: 'Bebê Rena', type: 'Série', year: 2024, duration: '7 episódios', genres: ['Drama', 'Suspense'], synopsis: 'Um comediante oferece um gesto de gentileza que desencadeia uma obsessão perigosa e transforma sua vida.', poster: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&q=85', backdrop: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?w=1800&q=85', cast: ['Richard Gadd', 'Jessica Gunning'], availability: [{service:'Netflix',access:'subscription',color:'#e50914'}], trending: true },
-    { id: 'rivais', title: 'Rivais', type: 'Filme', year: 2024, duration: '2h 11min', genres: ['Drama', 'Romance'], synopsis: 'Uma campeã de tênis se envolve em um triângulo amoroso que se estende das quadras à vida pessoal.', poster: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=600&q=85', backdrop: 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=1800&q=85', cast: ['Zendaya', 'Josh O’Connor'], availability: [{service:'Prime Video',access:'subscription',color:'#16a9e8'}], trending: true },
-    { id: 'o-urso', title: 'O Urso', type: 'Série', year: 2024, duration: '3 temporadas', genres: ['Comédia', 'Drama'], synopsis: 'Um jovem chef retorna a Chicago para cuidar da lanchonete da família e encontra uma nova brigada.', poster: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&q=85', backdrop: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=1800&q=85', cast: ['Jeremy Allen White', 'Ayo Edebiri'], availability: [{service:'Disney+',access:'subscription',color:'#173b9c'}], trending: true },
-    { id: 'o-aprendiz', title: 'O Aprendiz', type: 'Filme', year: 2025, duration: '2h 2min', genres: ['Biografia', 'Drama'], synopsis: 'A ascensão de um jovem empresário em Nova York, guiado por uma figura poderosa e controversa.', poster: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=600&q=85', backdrop: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1800&q=85', cast: ['Sebastian Stan', 'Jeremy Strong'], availability: [], comingSoon: true },
-    { id: 'flow', title: 'Flow', type: 'Filme', year: 2025, duration: '1h 25min', genres: ['Animação', 'Fantasia'], synopsis: 'Um gato solitário precisa encontrar seu lugar em um mundo tomado pela água.', poster: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=600&q=85', backdrop: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1800&q=85', availability: [], comingSoon: true }
-  ];
-  search(query: string): CatalogTitle[] { const normalized = query.trim().toLocaleLowerCase('pt-BR'); return normalized ? this.catalog.filter(item => `${item.title} ${item.genres.join(' ')}`.toLocaleLowerCase('pt-BR').includes(normalized)) : []; }
-  getById(id: string): CatalogTitle | undefined { return this.catalog.find(item => item.id === id); }
-  getFeatured(): CatalogTitle { return this.catalog.find(item => item.featured) ?? this.catalog[0]; }
-  getTrending(): CatalogTitle[] { return this.catalog.filter(item => item.trending); }
-  getByGenre(genre: string): CatalogTitle[] { return this.catalog.filter(item => item.genres.includes(genre)); }
-  getComingSoon(): CatalogTitle[] { return this.catalog.filter(item => item.comingSoon); }
+  private readonly http = inject(HttpClient);
+  private readonly baseUrl = inject(CATALOG_API_URL);
+
+  /** Fonte da última resposta (`tmdb`/`demo`); usada só para a atribuição exigida pelo TMDB no rodapé. */
+  readonly source = signal<CatalogSource | null>(null);
+
+  home(): Observable<HomeCatalog> {
+    return this.http.get<HomeCatalogResponse>(`${this.baseUrl}/catalog/home`).pipe(
+      tap(response => this.source.set(response.source)),
+      map(({ featured, trending, comingSoon }) => ({ featured, trending, comingSoon }))
+    );
+  }
+
+  search(query: string): Observable<CatalogTitle[]> {
+    const q = query.trim();
+    if (!q) return of([]);
+    return this.http.get<SearchResponse>(`${this.baseUrl}/catalog/search`, { params: { q } }).pipe(
+      tap(response => this.source.set(response.source)),
+      map(response => response.results)
+    );
+  }
+
+  /** Emite `null` quando o título não existe (404); outros erros seguem para o chamador. */
+  getById(id: string): Observable<CatalogTitle | null> {
+    return this.http.get<TitleResponse>(`${this.baseUrl}/catalog/titles/${encodeURIComponent(id)}`).pipe(
+      tap(response => this.source.set(response.source)),
+      map(response => response.title),
+      catchError((error: unknown) => error instanceof HttpErrorResponse && error.status === 404 ? of(null) : throwError(() => error))
+    );
+  }
 }

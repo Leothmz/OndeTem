@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { CatalogService } from './services/catalog.service';
 
 @Component({
   selector: 'ot-root',
@@ -19,8 +20,16 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 <footer>
   <span class="brand"><span>onde</span><b>tem?</b></span>
   <span>Descubra. Escolha. Assista.</span>
-  <small>© 2024 Onde Tem? · Catálogo demonstrativo</small>
+  @if (catalog.source() === 'tmdb') {
+    <small class="attribution">Dados de títulos e imagens: <a href="https://www.themoviedb.org/" target="_blank" rel="noopener">TMDB</a>. Este produto usa a API do TMDB, mas não é endossado nem certificado pelo TMDB.</small>
+  } @else if (catalog.source() === 'demo') {
+    <small>© 2024 Onde Tem? · Catálogo demonstrativo</small>
+  } @else {
+    <small>© 2024 Onde Tem?</small>
+  }
 </footer>`,
   styles: [`:host{display:block;min-height:100vh}`]
 })
-export class AppComponent {}
+export class AppComponent {
+  protected readonly catalog = inject(CatalogService);
+}

@@ -9,7 +9,7 @@ import { CatalogTitle } from '../models';
   template: `
 <a class="title-card" [routerLink]="['/titulo', title.id]" [attr.aria-label]="'Ver detalhes de '+title.title">
   <div class="poster-wrap">
-    @if (!imgError) {
+    @if (title.poster && !imgError) {
       <img [src]="title.poster" [alt]="'Pôster de '+title.title" loading="lazy" (error)="imgError=true">
     } @else {
       <div class="poster-fallback" aria-hidden="true"><span>{{title.title.charAt(0)}}</span></div>
@@ -22,7 +22,7 @@ import { CatalogTitle } from '../models';
     }
     <span class="play" aria-hidden="true">↗</span>
   </div>
-  <div class="card-meta"><h3>{{title.title}}</h3><p>{{title.year}} <i>·</i> {{title.genres[0]}}</p></div>
+  <div class="card-meta"><h3>{{title.title}}</h3><p>{{title.year}} <i [hidden]="!title.year || !title.genres[0]">·</i> {{title.genres[0]}}</p></div>
 </a>`
 })
 export class TitleCardComponent {
