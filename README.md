@@ -1,20 +1,27 @@
 # Onde Tem?
 
-Buscador de filmes e séries que responde uma pergunta simples: **onde eu assisto isso?**
+Primeiro produto navegável do buscador brasileiro que responde: **onde assistir?**
 
-Você pesquisa um título e o Onde Tem? mostra em quais serviços de streaming ele está disponível, seja Netflix, Prime Video, Disney+, Max, Globoplay, Apple TV+ ou outro.
+## Rodando localmente
 
-## Objetivo
+Requer Node.js 18.19+ (ou 20+ recomendado).
 
-Hoje o catálogo de filmes e séries está espalhado entre vários streamings, e descobrir onde um conteúdo está passa por abrir cada app e procurar um por um. O Onde Tem? junta essa informação num só lugar: uma busca, todas as respostas.
+```bash
+npm install
+npm start
+# abra http://localhost:4200
+npm test
+npm run build
+```
 
-## Funcionalidades planejadas
+A aplicação é Angular standalone, sem React/Vue. A home traz destaque, trilhos de títulos, gêneros e lançamentos; a busca aceita títulos e gêneros, com estados de carregamento/vazio; cada título tem uma página de detalhes e disponibilidade por serviço.
 
-- Busca de filmes e séries por título
-- Lista dos streamings onde o conteúdo está disponível
-- Informações básicas do título (pôster, ano, sinopse)
-- Indicação do tipo de acesso (assinatura, aluguel ou compra)
+## Dados e próxima integração
 
-## Status
+O contrato tipado está em `src/app/models.ts` e o ponto de troca está em `src/app/services/catalog.service.ts`. A implementação atual é um adapter local demonstrativo: pôsteres são imagens remotas e disponibilidade **não é dado de produção**. Para integrar uma API real:
 
-🚧 Em desenvolvimento. A implementação ainda não começou.
+1. Configurar um endpoint de catálogo e disponibilidade (por exemplo, `environment.apiUrl`).
+2. Criar uma implementação HTTP do `CatalogService` usando `HttpClient`, mantendo os tipos `CatalogTitle` e `Availability`.
+3. Adicionar cache, tratamento de erros e credenciais conforme o provedor escolhido. Nunca expor chaves privadas no frontend.
+
+Os testes cobrem a busca tipada, os modos de acesso e o estado vazio da busca. O layout responde a desktop/mobile, tem foco visível nativo, labels e suporte a `prefers-reduced-motion`.
